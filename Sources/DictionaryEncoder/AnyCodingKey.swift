@@ -17,15 +17,15 @@
 import Foundation
 
 /// A coding key from a string or int value that can be used with any type.
-struct AnyCodingKey: CodingKey {
+struct AnyCodingKey: CodingKey, Sendable {
     var intValue: Int?
     var stringValue: String
 
-    init?(stringValue: String) {
+    init(stringValue: String) {
         self.init(stringValue)
     }
 
-    init?(intValue: Int) {
+    init(intValue: Int) {
         self.init(intValue)
     }
 

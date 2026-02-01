@@ -77,7 +77,7 @@ extension DictionaryEncoder {
             container.updateValue(unkeyedContainer, forKey: key.stringValue)
 
             let nestedContainer = Array.Ref { [container] update in
-                container.updateValue([:], forKey: key.stringValue) // Avoid copy on write as we'll have multiple references.
+                container.updateValue([] as [Any], forKey: key.stringValue) // Avoid copy on write as we'll have multiple references.
                 update(&unkeyedContainer)
                 container.updateValue(unkeyedContainer, forKey: key.stringValue)
             }

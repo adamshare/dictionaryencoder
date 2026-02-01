@@ -15,35 +15,194 @@
 //
 
 @testable import DictionaryEncoder
-import XCTest
+import Foundation
+import Testing
 
-final class DictionaryEncoderTests: XCTestCase {
-    func testDictEncoder_noOptions() throws {
+@Suite("DictionaryEncoder Tests")
+struct DictionaryEncoderTests {
+    @Test("Encode without options")
+    func encodeNoOptions() throws {
         let encoder = DictionaryEncoder()
         let dictionary: [String: Any] = try encoder.encode(TestEncodable())
-        print("\(dictionary)")
-        print("\(TestEncodable.asEncodedNoOptions)")
-        XCTAssertTrue(dictionary == TestEncodable.asEncodedNoOptions)
+        #expect(dictionary == TestEncodable.asEncodedNoOptions)
     }
 
-    func testDictEncoder() throws {
+    @Test("Encode with options")
+    func encodeWithOptions() throws {
         let encoder = DictionaryEncoder(options: KeepFoundationOptions())
         let dictionary: [String: Any] = try encoder.encode(TestEncodable())
-        print(dictionary)
-        print(TestEncodable.asEncoded)
-        XCTAssertTrue(dictionary == TestEncodable.asEncoded)
+        #expect(dictionary == TestEncodable.asEncoded)
     }
 
-    func testEnumsEncoding() throws {
+    @Test("Encode enums")
+    func enumsEncoding() throws {
         let encoder = DictionaryEncoder()
         let dictionary: [String: Any] = try encoder.encode(TestEnums())
-        XCTAssertTrue(dictionary == TestEnums.asEncoded)
+        #expect(dictionary == TestEnums.asEncoded)
     }
 
-    func testSuperEncoder() throws {
+    @Test("Super encoder")
+    func superEncoder() throws {
         let encoder = DictionaryEncoder()
         let dictionary: [String: Any] = try encoder.encode(ChildKeyedEncodable())
-        XCTAssertTrue(dictionary == ChildKeyedEncodable.asEncoded)
+        #expect(dictionary == ChildKeyedEncodable.asEncoded)
+    }
+
+    // MARK: - Nested Container Tests
+
+    @Test("Nested unkeyed container in keyed")
+    func nestedUnkeyedContainerInKeyed() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderNestedUnkeyedInKeyed(matrix: [[1, 2], [3, 4]])
+        let dictionary = try encoder.encode(value)
+
+        let matrix = dictionary["matrix"] as? [[Int]]
+        #expect(matrix == [[1, 2], [3, 4]])
+    }
+
+    @Test("Nested keyed container in unkeyed")
+    func nestedKeyedContainerInUnkeyed() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderNestedKeyedInUnkeyed(items: [
+            EncoderNestedKeyedInUnkeyed.Item(id: 1, name: "First"),
+            EncoderNestedKeyedInUnkeyed.Item(id: 2, name: "Second"),
+        ])
+        let dictionary = try encoder.encode(value)
+
+        let items = dictionary["items"] as? [[String: Any]]
+        #expect(items?.count == 2)
+        #expect(items?[0]["id"] as? Int == 1)
+        #expect(items?[0]["name"] as? String == "First")
+    }
+
+    // MARK: - EncodeNil Tests
+
+    @Test("Encode nil in keyed container")
+    func encodeNilInKeyedContainer() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderNilValue()
+        let dictionary = try encoder.encode(value)
+
+        #expect(dictionary["nullValue"] is NSNull)
+        #expect(dictionary["stringValue"] as? String == "hello")
+    }
+
+    @Test("Encode nil in unkeyed container")
+    func encodeNilInUnkeyedContainer() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderUnkeyedNilValue()
+        let dictionary = try encoder.encode(value)
+
+        let values = dictionary["values"] as? [Any]
+        #expect(values?.count == 3)
+        #expect(values?[0] is NSNull)
+        #expect(values?[1] as? String == "hello")
+        #expect(values?[2] is NSNull)
+    }
+
+    // MARK: - Primitive Encoding Tests
+
+    @Test("Encode all primitive types")
+    func allPrimitivesEncoding() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderAllPrimitives(
+            boolVar: true,
+            stringVar: "test",
+            doubleVar: 3.14,
+            floatVar: 2.5,
+            intVar: 42,
+            int8Var: 8,
+            int16Var: 16,
+            int32Var: 32,
+            int64Var: 64,
+            uintVar: 100,
+            uint8Var: 8,
+            uint16Var: 16,
+            uint32Var: 32,
+            uint64Var: 64
+        )
+        let dictionary = try encoder.encode(value)
+
+        #expect(dictionary["boolVar"] as? Bool == true)
+        #expect(dictionary["stringVar"] as? String == "test")
+        #expect(dictionary["doubleVar"] as? Double == 3.14)
+        #expect(dictionary["floatVar"] as? Float == 2.5)
+        #expect(dictionary["intVar"] as? Int == 42)
+        #expect(dictionary["int8Var"] as? Int8 == 8)
+        #expect(dictionary["int16Var"] as? Int16 == 16)
+        #expect(dictionary["int32Var"] as? Int32 == 32)
+        #expect(dictionary["int64Var"] as? Int64 == 64)
+        #expect(dictionary["uintVar"] as? UInt == 100)
+        #expect(dictionary["uint8Var"] as? UInt8 == 8)
+        #expect(dictionary["uint16Var"] as? UInt16 == 16)
+        #expect(dictionary["uint32Var"] as? UInt32 == 32)
+        #expect(dictionary["uint64Var"] as? UInt64 == 64)
+    }
+
+    // MARK: - Error Tests
+
+    @Test("Encoding non-keyed container throws")
+    func encodingNonKeyedContainerThrows() throws {
+        let encoder = DictionaryEncoder()
+
+        // Single value container at top level should throw
+        #expect(throws: DictionaryEncoderError.self) {
+            try encoder.encode("just a string")
+        }
+    }
+
+    @Test("Encoding array throws")
+    func encodingArrayThrows() throws {
+        let encoder = DictionaryEncoder()
+
+        // Array at top level should throw
+        #expect(throws: DictionaryEncoderError.self) {
+            try encoder.encode([1, 2, 3])
+        }
+    }
+
+    @Test("Error description")
+    func errorDescription() throws {
+        let error = DictionaryEncoderError.notKeyedContainer("test")
+        #expect(error.errorDescription != nil)
+        #expect(error.errorDescription?.contains("test") ?? false)
+    }
+
+    // MARK: - Unkeyed Container Tests
+
+    @Test("Unkeyed container encode Encodable type")
+    func unkeyedContainerEncodeEncodable() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderUnkeyedEncodable(items: [
+            EncoderUnkeyedEncodable.Item(name: "first"),
+            EncoderUnkeyedEncodable.Item(name: "second"),
+        ])
+        let dictionary = try encoder.encode(value)
+
+        let items = dictionary["items"] as? [[String: Any]]
+        #expect(items?.count == 2)
+        #expect(items?[0]["name"] as? String == "first")
+        #expect(items?[1]["name"] as? String == "second")
+    }
+
+    @Test("Unkeyed container nested unkeyed container")
+    func unkeyedNestedUnkeyedContainer() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderUnkeyedNestedUnkeyed(matrix: [[1, 2], [3, 4]])
+        let dictionary = try encoder.encode(value)
+
+        let matrix = dictionary["matrix"] as? [[Any]]
+        #expect(matrix?.count == 2)
+    }
+
+    @Test("Unkeyed container encode Bool")
+    func unkeyedContainerEncodeBool() throws {
+        let encoder = DictionaryEncoder()
+        let value = EncoderUnkeyedBool(values: [true, false, true])
+        let dictionary = try encoder.encode(value)
+
+        let values = dictionary["values"] as? [Bool]
+        #expect(values == [true, false, true])
     }
 }
 
@@ -191,7 +350,7 @@ struct TestNestedEncodable: Encodable {
     }
 }
 
-extension NSNull: Encodable {
+extension NSNull: @retroactive Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encodeNil()
@@ -248,12 +407,150 @@ class ChildUnkeyedEncodable: ParentSingleValueEncodable {
         // try super.encode(to: encoder) cannot be called because super uses a different container type.
         try super.encode(to: container.superEncoder())
     }
+}
 
-    static var asEncoded: [String] {
-        [
-            "Bar",
-            "Foo",
-        ]
+// MARK: - Additional Test Types
+
+struct EncoderNestedUnkeyedInKeyed: Encodable {
+    var matrix: [[Int]]
+
+    private enum CodingKeys: String, CodingKey {
+        case matrix
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .matrix)
+        for row in matrix {
+            try nestedContainer.encode(row)
+        }
+    }
+}
+
+struct EncoderNestedKeyedInUnkeyed: Encodable {
+    var items: [Item]
+
+    struct Item: Encodable {
+        var id: Int
+        var name: String
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case items
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .items)
+        for item in items {
+            var itemContainer = nestedContainer.nestedContainer(keyedBy: ItemCodingKeys.self)
+            try itemContainer.encode(item.id, forKey: .id)
+            try itemContainer.encode(item.name, forKey: .name)
+        }
+    }
+
+    private enum ItemCodingKeys: String, CodingKey {
+        case id
+        case name
+    }
+}
+
+struct EncoderNilValue: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case nullValue
+        case stringValue
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeNil(forKey: .nullValue)
+        try container.encode("hello", forKey: .stringValue)
+    }
+}
+
+struct EncoderUnkeyedNilValue: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case values
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .values)
+        try nestedContainer.encodeNil()
+        try nestedContainer.encode("hello")
+        try nestedContainer.encodeNil()
+    }
+}
+
+struct EncoderAllPrimitives: Encodable {
+    var boolVar: Bool
+    var stringVar: String
+    var doubleVar: Double
+    var floatVar: Float
+    var intVar: Int
+    var int8Var: Int8
+    var int16Var: Int16
+    var int32Var: Int32
+    var int64Var: Int64
+    var uintVar: UInt
+    var uint8Var: UInt8
+    var uint16Var: UInt16
+    var uint32Var: UInt32
+    var uint64Var: UInt64
+}
+
+struct EncoderUnkeyedEncodable: Encodable {
+    var items: [Item]
+
+    struct Item: Encodable {
+        var name: String
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case items
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .items)
+        for item in items {
+            try nestedContainer.encode(item)
+        }
+    }
+}
+
+struct EncoderUnkeyedNestedUnkeyed: Encodable {
+    var matrix: [[Int]]
+
+    private enum CodingKeys: String, CodingKey {
+        case matrix
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .matrix)
+        for row in matrix {
+            var rowContainer = nestedContainer.nestedUnkeyedContainer()
+            for value in row {
+                try rowContainer.encode(value)
+            }
+        }
+    }
+}
+
+struct EncoderUnkeyedBool: Encodable {
+    var values: [Bool]
+
+    private enum CodingKeys: String, CodingKey {
+        case values
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        var nestedContainer = container.nestedUnkeyedContainer(forKey: .values)
+        for value in values {
+            try nestedContainer.encode(value)
+        }
     }
 }
 

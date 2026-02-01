@@ -18,7 +18,7 @@ import Foundation
 
 extension Dictionary {
     /// Provides a mutable reference to a dictionary stored elsewhere
-    struct Ref {
+    struct Ref: @unchecked Sendable {
         var captured: ((inout Dictionary) -> Void) -> Void
 
         func updateValue(_ value: Value, forKey key: Key) {

@@ -18,7 +18,7 @@ import Foundation
 
 extension Array {
     /// Provides a mutable reference to an Array stored elsewhere
-    struct Ref {
+    struct Ref: @unchecked Sendable {
         var captured: ((inout Array) -> Void) -> Void
 
         public var count: Int {
