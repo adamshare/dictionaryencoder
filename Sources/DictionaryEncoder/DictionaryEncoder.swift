@@ -18,14 +18,14 @@ import Combine
 import Foundation
 
 /// Errors from `DictionaryEncoder`
-public enum DictionaryEncoderError: LocalizedError {
+public enum DictionaryEncoderError: LocalizedError, Sendable {
     /// The type was not encoded to a keyed container so a dictionary could not be returned.
-    case notKeyedContainer(Any)
+    case notKeyedContainer(String)
 
     public var errorDescription: String? {
         switch self {
-        case let .notKeyedContainer(value):
-            return "\(value) does not encode to a keyed container."
+        case let .notKeyedContainer(typeDescription):
+            return "\(typeDescription) does not encode to a keyed container."
         }
     }
 }
@@ -65,9 +65,9 @@ public final class DictionaryEncoder: TopLevelEncoder {
         case .keyed:
             return container.dictionary
         case .singleValue:
-            throw DictionaryEncoderError.notKeyedContainer(value)
+            throw DictionaryEncoderError.notKeyedContainer(String(describing: type(of: value)))
         case .unkeyed:
-            throw DictionaryEncoderError.notKeyedContainer(value)
+            throw DictionaryEncoderError.notKeyedContainer(String(describing: type(of: value)))
         }
     }
 

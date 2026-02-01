@@ -18,24 +18,24 @@ import Combine
 import Foundation
 
 /// Errors from `DictionaryDecoder`
-public enum DictionaryDecoderError: LocalizedError {
+public enum DictionaryDecoderError: LocalizedError, Sendable {
     /// The dictionary value could not be decoded to the expected type.
-    case typeMismatch(expected: Any.Type, actual: Any, codingPath: [CodingKey])
+    case typeMismatch(expected: String, actual: String, codingPath: [String])
     /// A required key was not found in the dictionary.
-    case keyNotFound(CodingKey, codingPath: [CodingKey])
+    case keyNotFound(String, codingPath: [String])
     /// The value was null or missing when a non-optional was expected.
-    case valueNotFound(Any.Type, codingPath: [CodingKey])
+    case valueNotFound(String, codingPath: [String])
 
     public var errorDescription: String? {
         switch self {
         case let .typeMismatch(expected, actual, codingPath):
-            let path = codingPath.map(\.stringValue).joined(separator: ".")
-            return "Type mismatch at '\(path)': expected \(expected) but found \(type(of: actual))."
+            let path = codingPath.joined(separator: ".")
+            return "Type mismatch at '\(path)': expected \(expected) but found \(actual)."
         case let .keyNotFound(key, codingPath):
-            let path = codingPath.map(\.stringValue).joined(separator: ".")
-            return "Key '\(key.stringValue)' not found at '\(path)'."
+            let path = codingPath.joined(separator: ".")
+            return "Key '\(key)' not found at '\(path)'."
         case let .valueNotFound(type, codingPath):
-            let path = codingPath.map(\.stringValue).joined(separator: ".")
+            let path = codingPath.joined(separator: ".")
             return "Value of type \(type) not found at '\(path)'."
         }
     }

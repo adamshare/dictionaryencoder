@@ -643,9 +643,9 @@ struct DictionaryDecoderTests {
     @Test("DictionaryDecoderError type mismatch description")
     func decoderErrorTypeMismatchDescription() throws {
         let error = DictionaryDecoderError.typeMismatch(
-            expected: String.self,
-            actual: 123,
-            codingPath: [AnyCodingKey("testKey")]
+            expected: "String",
+            actual: "Int",
+            codingPath: ["testKey"]
         )
         let description = error.errorDescription
         #expect(description != nil)
@@ -656,8 +656,8 @@ struct DictionaryDecoderTests {
     @Test("DictionaryDecoderError key not found description")
     func decoderErrorKeyNotFoundDescription() throws {
         let error = DictionaryDecoderError.keyNotFound(
-            AnyCodingKey("missingKey"),
-            codingPath: [AnyCodingKey("parent")]
+            "missingKey",
+            codingPath: ["parent"]
         )
         let description = error.errorDescription
         #expect(description != nil)
@@ -667,8 +667,8 @@ struct DictionaryDecoderTests {
     @Test("DictionaryDecoderError value not found description")
     func decoderErrorValueNotFoundDescription() throws {
         let error = DictionaryDecoderError.valueNotFound(
-            String.self,
-            codingPath: [AnyCodingKey("path")]
+            "String",
+            codingPath: ["path"]
         )
         let description = error.errorDescription
         #expect(description != nil)
